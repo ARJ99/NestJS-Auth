@@ -13,7 +13,7 @@ export const users = pgTable("users", {
     role: userRoleEnum("role").notNull().default("user"),
     isVerified: boolean("is_verified").notNull().default(false),
     verificationToken: text("verification_token"),
-    verificationTokenExperiesAt: timestamp("verification_token_expires_at"),
+    verificationTokenExpiresAt: timestamp("verification_token_expires_at"),
     resetToken: text("reset_token"),
     resetTokenExpiresAt: timestamp("reset_token_expires_at"),
     refreshTokenHash: text("refresh_token_hash"),
