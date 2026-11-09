@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, UnauthorizedException, BadRequestException, NotFoundException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { ConfigService } from "@nestjs/config"
-import * as bcrypt from "bcrypt"
+import * as bcrypt from "bcryptjs"
 import * as crypto from "crypto"
 import { UsersService } from "../users/users.service"
 import { EmailService } from "./email.service"
@@ -172,8 +172,8 @@ export class AuthService {
         }
     }
 
-    private async saveRefreshToken(userId: string, refreshToekn: string) {
-        const refreshTokenHash = await bcrypt.hash(refreshToekn, 10);
+    private async saveRefreshToken(userId: string, refreshToken: string) {
+        const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
         await this.usersService.update(userId, { refreshTokenHash })
     }
 
