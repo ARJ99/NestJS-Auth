@@ -7,6 +7,8 @@ import { LoginDto } from "./dto/login.dto";
 import { Public } from "../common/decorators/public.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { User } from "../db/schema";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -65,28 +67,50 @@ export class AuthController {
     @Post("logout")
     @HttpCode(HttpStatus.OK)
     @ApiBearerAuth()
-    @ApiOperation({summary:"Logout and invalidate refresh token"})
+    @ApiOperation({ summary: "Logout and invalidate refresh token" })
     async logout(
-        @CurrentUser() user :User,
-        @Res({passthrough:true}) res : Response
-    ){
-        return this.authService.logout(user.id,res)
+        @CurrentUser() user: User,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        return this.authService.logout(user.id, res)
     }
 
     //GET /api/auth/me
     @Get("me")
     @ApiBearerAuth()
-    @ApiOperation({summary:"Get current authenticated user"})
+    @ApiOperation({ summary: "Get current authenticated user" })
     async me(
-        @CurrentUser() user : User
-    ){
+        @CurrentUser() user: User
+    ) {
         return {
-            id:user.id,
-            emai:user.email,
-            name:user.name,
-            role:user.role,
+            id: user.id,
+            emai: user.email,
+            name: user.name,
+            role: user.role,
             isVerified: user.isVerified
         }
+    }
+
+    //POST /api/auth/forgot-password
+    @Public()
+    @Post("forgot-password")
+    @HttpCode((HttpStatus.OK))
+    @ApiOperation({ summary: "Request a password to reset email" })
+    async forgotPassword(
+        @Body() dto: ForgotPasswordDto
+    ) {
+        return this.authService.forgotPassword(dto.email);
+    }
+
+    //POST /api/auth/reset-password
+    @Public()
+    @Post("reset-password")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: "Reset password using token from email" })
+    async resetPassword(
+        @Body() dto: ResetPasswordDto
+    ) {
+        return this.authService.resetPassword(dto.token, dto.password);
     }
 
 }
