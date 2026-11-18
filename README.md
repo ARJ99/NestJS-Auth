@@ -1,124 +1,318 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# NestJS Auth API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A production-style authentication boilerplate built with **NestJS 12**, **Drizzle ORM**, and
+**PostgreSQL (Neon serverless)**. It covers the full auth lifecycle: registration with email
+verification, login, JWT access/refresh token rotation with httpOnly cookies, role-based access
+control, and password reset — fully documented with an interactive Swagger UI.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- ✅ **Register / Login** — bcrypt password hashing (cost 12)
+- ✅ **Email verification** — 24-hour verification tokens, auto-login on verify
+- ✅ **JWT auth** — short-lived access tokens + rotating refresh tokens
+- ✅ **Refresh token rotation** — httpOnly cookie, bcrypt-hashed at rest in the database
+- ✅ **Role-based access control** — global `JwtAuthGuard` + `RolesGuard` (`user` / `admin`)
+- ✅ **Password reset** — forgot/reset flow with 1-hour tokens and anti-enumeration responses
+- ✅ **Transactional email** — verification & reset emails via [Resend](https://resend.com)
+- ✅ **Validation** — global `ValidationPipe` with whitelist + transform
+- ✅ **Uniform error envelope** — global exception filter
+- ✅ **OpenAPI docs** — Swagger UI served at `/api/docs`
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+| Layer          | Technology                                                        |
+| -------------- | ----------------------------------------------------------------- |
+| Framework      | NestJS 12 (Express), TypeScript 6 (ES2023, strict mode)           |
+| Database       | PostgreSQL via [Neon](https://neon.tech) serverless driver        |
+| ORM            | Drizzle ORM + drizzle-kit (push-based schema management)          |
+| Authentication | `@nestjs/jwt` (HS256) + `bcryptjs` — hand-rolled guards, no Passport |
+| Email          | Resend HTTP API (`resend`)                                        |
+| API docs       | `@nestjs/swagger` + `swagger-ui-express`                          |
+| Validation     | `class-validator` / `class-transformer`                           |
+| Testing        | Jest 30 + Supertest                                               |
+| Lint / Format  | oxlint (type-aware) / Prettier                                    |
 
-```bash
-$ yarn install
-```
+## Getting Started
 
-## Compile and run the project
+### Prerequisites
 
-```bash
-# development
-$ yarn run start
+- **Node.js ≥ 24** (the project targets ES2023 and runs Jest with `--experimental-vm-modules`)
+- Yarn or npm
+- A **Neon / PostgreSQL** connection string
+- A **Resend** API key (for verification & password-reset emails)
 
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
-```
-
-## Run tests
+### 1. Install dependencies
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+git clone <repo-url>
+cd nestjs-auth
+yarn install
 ```
 
-## Deployment
+### 2. Configure environment variables
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Copy the template and fill in your values:
 
 ```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+cp .env.template .env
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+| Variable                | Purpose                                          | Example value          |
+| ----------------------- | ------------------------------------------------ | ---------------------- |
+| `DATABASE_URL`          | Neon PostgreSQL connection string                | `postgres://...`       |
+| `JWT_ACCESS_SECRET`     | HMAC secret for access tokens                    | (random strong string) |
+| `JWT_REFRESH_SECRET`    | HMAC secret for refresh tokens                   | (random strong string) |
+| `JWT_ACCESS_EXPIRES_IN` | Access token lifetime                            | `15m`                  |
+| `JWT_REFRESH_EXPIRES_IN`| Refresh token lifetime                           | `7d`                   |
+| `RESEND_API_KEY`        | Resend API key for transactional email           | `re_...`               |
+| `APP_URL`               | Base URL used in email verification/reset links  | `http://localhost:3000`|
+| `PORT`                  | HTTP port                                        | `3000`                 |
 
-## Observability
+> ⚠️ Use **different** secrets for access and refresh tokens in production.
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project:
+### 3. Push the database schema
 
 ```bash
-$ yarn install @nestjs/observe
+yarn db:push        # apply src/db/schema.ts to your database
 ```
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
+Other drizzle-kit commands available: `db:generate`, `db:migrate`, `db:studio`.
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+### 4. Run the app
 
-## Resources
+```bash
+# development (watch mode)
+yarn start:dev
 
-Check out a few resources that may come in handy when working with NestJS:
+# production
+yarn build && yarn start:prod
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- API base URL: `http://localhost:3000/api`
+- Swagger UI: `http://localhost:3000/api/docs`
 
-## Support
+## Available Scripts
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+| Script            | Description                              |
+| ----------------- | ---------------------------------------- |
+| `start:dev`       | Start in watch mode                      |
+| `start:debug`     | Start in debug + watch mode              |
+| `start:prod`      | Run the compiled build (`node dist/main`)|
+| `build`           | Compile to `dist/`                       |
+| `test`            | Run unit tests (Jest)                    |
+| `test:e2e`        | Run e2e tests                            |
+| `test:cov`        | Run tests with coverage                  |
+| `lint`            | Lint with oxlint (type-aware)            |
+| `format`          | Format with Prettier                     |
+| `db:push`         | Push Drizzle schema to the database      |
+| `db:generate`     | Generate Drizzle migrations              |
+| `db:migrate`      | Apply Drizzle migrations                 |
+| `db:studio`       | Open Drizzle Studio                      |
 
-## Stay in touch
+## API Reference
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Base URL: **`/api`** — all request bodies are JSON. DTOs are validated globally
+(unknown fields are rejected with `400`).
 
-## License
+| Method | Path                        | Auth         | Description                                        |
+| ------ | --------------------------- | ------------ | -------------------------------------------------- |
+| POST   | `/api/auth/register`        | Public       | Create an account & receive a verification email   |
+| GET    | `/api/auth/verify-email`    | Public       | Verify email via `?token=...`, auto-login          |
+| POST   | `/api/auth/login`           | Public       | Authenticate, receive tokens + refresh cookie      |
+| POST   | `/api/auth/refresh`         | Cookie       | Rotate refresh token, get a new access token       |
+| POST   | `/api/auth/logout`          | Bearer JWT   | Invalidate refresh token & clear cookie            |
+| GET    | `/api/auth/me`              | Bearer JWT   | Get the current user's profile                     |
+| POST   | `/api/auth/forgot-password` | Public       | Request a password-reset email                     |
+| POST   | `/api/auth/reset-password`  | Public       | Set a new password using a reset token             |
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### `POST /api/auth/register`
+
+```json
+{ "name": "John Doe", "email": "john@example.com", "password": "password123" }
+```
+
+- `password`: min 8 characters
+- **201** → `{ "message": "Registration Successfull. Please check your email to verify your account" }`
+- **409** if the email is already registered
+- A verification email is sent with a 24-hour token
+
+### `GET /api/auth/verify-email?token=<token>`
+
+- Verifies the account, clears the token, and **logs the user in immediately**
+- **200** → `{ "message": "...", "accessToken": "...", "user": { "id", "email", "name", "role" } }`
+- Also sets the `refresh_token` httpOnly cookie
+
+### `POST /api/auth/login`
+
+```json
+{ "email": "john@example.com", "password": "password123" }
+```
+
+- **200** → `{ "accessToken": "...", "user": { "id", "email", "name", "role" } }`
+- Sets the `refresh_token` httpOnly cookie
+- **401** for invalid credentials **or** unverified email
+
+### `POST /api/auth/refresh`
+
+- Requires the `refresh_token` cookie (no body)
+- Validates and **rotates** the refresh token (old one is invalidated, new cookie set)
+- **200** → `{ "accessToken": "..." }`
+
+### `POST /api/auth/logout` 🔒
+
+- Requires `Authorization: Bearer <accessToken>`
+- Nulls the stored refresh token hash and clears the cookie
+- **200** → `{ "message": "Logged out successfully" }`
+
+### `GET /api/auth/me` 🔒
+
+- Requires `Authorization: Bearer <accessToken>`
+- **200** → `{ "id", "email", "name", "role", "isVerified" }`
+
+### `POST /api/auth/forgot-password`
+
+```json
+{ "email": "john@example.com" }
+```
+
+- Always returns the same generic message whether or not the email exists
+  (prevents account enumeration)
+- If the account exists: a 1-hour reset token is generated and emailed
+
+### `POST /api/auth/reset-password`
+
+```json
+{ "token": "<reset-token>", "password": "newpassword123" }
+```
+
+- **200** → `{ "message": "Password reset successfully. You can now log in." }`
+- **400** if the token is invalid or expired
+
+🔒 = requires a valid Bearer access token.
+
+## Authentication Architecture
+
+### Token strategy
+
+| Token   | Secret              | Default TTL | Delivery                              |
+| ------- | ------------------- | ----------- | ------------------------------------- |
+| Access  | `JWT_ACCESS_SECRET` | 15m         | JSON response body (`Authorization: Bearer`) |
+| Refresh | `JWT_REFRESH_SECRET`| 7d          | httpOnly cookie (`refresh_token`)     |
+
+- Payload: `{ sub: userId, email, role }`
+- Refresh tokens are stored **bcrypt-hashed** in the database (`users.refreshTokenHash`)
+- Cookie attributes: `httpOnly`, `sameSite: lax`, `secure` in production, `maxAge` 7 days
+- On every refresh the token is **rotated**: the old hash is replaced, limiting the window
+  for stolen tokens
+
+### Guard pipeline
+
+Both guards are registered **globally** (`APP_GUARD`), so every route is protected by default:
+
+1. **`JwtAuthGuard`** — verifies the Bearer access token, loads the user from the database
+   (rejects deleted users), and attaches the user to `request.user`
+2. **`RolesGuard`** — enforces `@Roles(...)` metadata when present (403 otherwise)
+
+Routes are marked public explicitly:
+
+```ts
+@Public()                      // skip JWT authentication
+@Post('login')
+login(@Body() dto: LoginDto) { ... }
+
+@Roles('admin')                // restrict to specific roles
+@Get('admin-only')
+adminOnly() { ... }
+```
+
+Available custom decorators:
+
+| Decorator         | Purpose                                        |
+| ----------------- | ---------------------------------------------- |
+| `@Public()`       | Mark a route as unauthenticated                |
+| `@Roles(...)`     | Restrict a route to one or more roles          |
+| `@CurrentUser()`  | Inject the authenticated user into a handler   |
+
+## Database Schema
+
+Drizzle schema lives in `src/db/schema.ts` (PostgreSQL, Neon serverless driver).
+
+### `users`
+
+| Column                       | Type         | Notes                              |
+| ---------------------------- | ------------ | ---------------------------------- |
+| `id`                         | uuid         | PK, auto-generated                 |
+| `email`                      | text         | unique, not null                   |
+| `password_hash`              | text         | bcrypt hash                        |
+| `name`                       | text         | not null                           |
+| `role`                       | enum         | `user` \| `admin`, default `user`  |
+| `is_verified`                | boolean      | default `false`                    |
+| `verification_token`         | text         | email verification (24h)           |
+| `verification_token_expires` | timestamp    |                                    |
+| `reset_token`                | text         | password reset (1h)                |
+| `reset_token_expires_at`     | timestamp    |                                    |
+| `refresh_token_hash`         | text         | bcrypt hash of the refresh token   |
+| `created_at` / `updated_at`  | timestamp    | auto-managed                       |
+
+### `task` *(defined, not yet exposed via API)*
+
+| Column        | Type      | Notes                                       |
+| ------------- | --------- | ------------------------------------------- |
+| `id`          | uuid      | PK                                          |
+| `title`       | text      | not null                                    |
+| `description` | text      | nullable                                    |
+| `status`      | enum      | `todo` \| `in_progress` \| `done`           |
+| `user_id`     | uuid      | FK → `users.id`, `ON DELETE CASCADE`        |
+
+## Error Handling
+
+All errors pass through a global `HttpExceptionFilter` and return a uniform envelope:
+
+```json
+{
+  "statusCode": 401,
+  "message": "Invalid credentials",
+  "timestamp": "2026-01-01T00:00:00.000Z",
+  "path": "/api/auth/login"
+}
+```
+
+## Project Structure
+
+```
+src/
+├── main.ts                     # Bootstrap: cookie-parser, prefix "api", Swagger, filters
+├── app.module.ts               # Global ConfigModule, JwtModule, APP_GUARD registrations
+├── auth/
+│   ├── auth.controller.ts      # All /api/auth endpoints
+│   ├── auth.service.ts         # Token generation, rotation, password flows
+│   ├── email.service.ts        # Resend integration (verification & reset emails)
+│   └── dto/                    # register / login / forgot-password / reset-password
+├── common/
+│   ├── decorators/             # @Public(), @Roles(), @CurrentUser()
+│   ├── guards/                 # JwtAuthGuard, RolesGuard (registered globally)
+│   └── filters/                # HttpExceptionFilter (uniform error envelope)
+├── db/
+│   ├── schema.ts               # Drizzle tables: users, task
+│   └── index.ts                # Neon serverless connection singleton
+└── users/
+    ├── users.service.ts        # User lookup / create / update / delete
+    └── users.module.ts
+```
+
+## Roadmap
+
+- [ ] Wire up `@nestjs/throttler` for rate limiting (dependency already installed)
+- [ ] Users CRUD endpoints (`UsersService` is ready; controller pending)
+- [ ] Use the `task` table (schema exists; module/endpoint pending)
+- [ ] Hash reset & verification tokens at rest (currently only refresh tokens are hashed)
+- [ ] Enable CORS for cross-origin frontends
+- [ ] Expand e2e test coverage
+
+## Notes
+
+- The API docs are interactive at `/api/docs` — use the **Authorize** button with a Bearer token.
+- Email sending is fire-and-forget; in local development you can use any Resend test API key
+  and check the Resend dashboard for delivered messages.
+- The starter e2e test (`test/app.e2e-spec.ts`) targets the default NestJS hello-world route and
+  needs updating to match this API.
